@@ -1,0 +1,300 @@
+<apex:component layout="none">
+	<apex:attribute name="SymbolTable" type="SymbolTable" description="" />
+	<div class="panel-heading">
+		<h4 class="panel-title">
+			<a class="accordion-toggle" data-toggle="collapse" data-parent="#accordion" href="#collapse_{!SymbolTable.Id}">
+				<apex:outputPanel layout="none" rendered="{!SymbolTable.namespace != null}">
+					{!SymbolTable.namespace}.
+				</apex:outputPanel>
+				{!SymbolTable.name}
+				
+				<apex:outputPanel layout="none" rendered="{!SymbolTable.interfaces.size > 0}">
+					<em>implements
+						<apex:repeat value="{!SymbolTable.interfaces}" var="interface">
+							&nbsp;{!interface}
+						</apex:repeat>
+					</em>
+				</apex:outputPanel>			
+			</a>
+		</h4>
+	</div>
+	<div id="collapse_{!SymbolTable.Id}" class="panel-collapse collapse">
+		<div class="panel-body">
+
+			<table class="table">
+				<tr class="active">
+					<td colspan="8">Table Declarations</td>
+				</tr>
+				<tr>
+					<th></th>
+					<th>modifiers</th>
+					<th colspan="2">type</th>
+					<th colspan="2">name</th>
+					<th>location</th>
+					<th>references</th>
+				</tr>
+				<tr>
+					<td></td>
+					<td>
+						<apex:repeat value="{!SymbolTable.tableDeclaration.modifiers}" var="modifier">
+							{!modifier}<br />
+						</apex:repeat>
+					</td>
+					<td colspan="2">{!SymbolTable.tableDeclaration.type}</td>
+					<td colspan="2">{!SymbolTable.tableDeclaration.name}</td>
+					<td>line {!SymbolTable.tableDeclaration.location.line}, col {!SymbolTable.tableDeclaration.location.column}</td>
+					<td>
+						<apex:repeat value="{!SymbolTable.tableDeclaration.references}" var="reference">
+							line {!reference.line}, col {!reference.column}<br />
+						</apex:repeat>
+					</td>
+				</tr>
+
+
+
+				<tr class="active">
+					<td colspan="8">Properties</td>
+				</tr>
+				<tr>
+					<th>visibility</th>
+					<th>modifiers</th>
+					<th colspan="2">type</th>
+					<th colspan="2">name</th>
+					<th>location</th>
+					<th>references</th>
+				</tr>
+				<apex:repeat value="{!SymbolTable.properties}" var="property">
+					<tr>
+						<td>{!property.visibility}</td>
+						<td>
+							<apex:repeat value="{!property.modifiers}" var="modifier">
+								{!modifier}<br />
+							</apex:repeat>
+						</td>
+						<td colspan="2">{!property.type}</td>
+						<td colspan="2">{!property.name}</td>
+						<td>line {!property.location.line}, col {!property.location.column}</td>
+						<td>
+							<apex:repeat value="{!property.references}" var="reference">
+								line {!reference.line}, col {!reference.column}<br />
+							</apex:repeat>
+						</td>
+					</tr>
+				</apex:repeat>
+
+
+
+				<tr class="active">
+					<td colspan="8">Constructors</td>
+				</tr>
+				<tr>
+					<th>visibility</th>
+					<th>modifiers</th>
+					<th colspan="2">type</th>
+					<th>name</th>
+					<th>parameters</th>
+					<th>location</th>
+					<th>references</th>
+				</tr>
+				<apex:repeat value="{!SymbolTable.constructors}" var="constructor">
+					<tr>
+						<td>{!constructor.visibility}</td>
+						<td>
+							<apex:repeat value="{!constructor.modifiers}" var="modifier">
+								{!modifier}<br />
+							</apex:repeat>
+						</td>
+						<td colspan="2">{!constructor.type}</td>
+						<td>{!constructor.name}</td>
+						<td>
+							<apex:repeat value="{!constructor.parameters}" var="parameter">
+								{!parameter.type} <em>{!parameter.name}</em><br />
+							</apex:repeat>
+						</td>
+						<td>line {!constructor.location.line}, col {!constructor.location.column}</td>
+						<td>
+							<apex:repeat value="{!constructor.references}" var="reference">
+								line {!reference.line}, col {!reference.column}<br />
+							</apex:repeat>
+						</td>
+					</tr>
+				</apex:repeat>
+
+
+
+				<tr class="active">
+					<td colspan="8">Methods</td>
+				</tr>
+				<tr>
+					<th>visibility</th>
+					<th>modifiers</th>
+					<th>type</th>
+					<th>return type</th>
+					<th>name</th>
+					<th>parameters</th>
+					<th>location</th>
+					<th>references</th>
+				</tr>
+				<apex:repeat value="{!SymbolTable.methods}" var="method">
+					<tr>
+						<td>{!method.visibility}</td>
+						<td>
+							<apex:repeat value="{!method.modifiers}" var="modifier">
+								{!modifier}<br />
+							</apex:repeat>
+						</td>
+						<td>{!method.type}</td>
+						<td>{!method.returnType}</td>
+						<td>{!method.name}</td>
+						<td>
+							<apex:repeat value="{!method.parameters}" var="parameter">
+								{!parameter.type} <em>{!parameter.name}</em><br />
+							</apex:repeat>
+						</td>
+						
+						<td>line {!method.location.line}, col {!method.location.column}</td>
+						
+						<td>
+							<apex:repeat value="{!method.references}" var="reference">
+								line {!reference.line}, col {!reference.column}<br />
+							</apex:repeat>
+						</td>
+					</tr>
+				</apex:repeat>
+			
+				<tr class="active">
+					<td colspan="8">Variables</td>
+				</tr>
+				<tr>
+					<th></th>
+					<th>modifiers <span data-toggle="tooltip" data-placement="top" title="Not sure what this is yet..." class="glyphicon glyphicon-question-sign"></span></th>
+					<th colspan="2">type <span data-toggle="tooltip" data-placement="top" title="Data type of the variable." class="glyphicon glyphicon-question-sign"></span></th>
+					<th colspan="2">name <span data-toggle="tooltip" data-placement="top" title="Name of the variable." class="glyphicon glyphicon-question-sign"></span></th>
+					<th>location <span data-toggle="tooltip" data-placement="top" title="Initial definition of the variable. This may reference a parameter." class="glyphicon glyphicon-question-sign"></span></th>
+					
+					<th>references <span data-toggle="tooltip" data-placement="top" title="Subsequent locations of a variable after its initial definition location." class="glyphicon glyphicon-question-sign"></span></th>
+				</tr>
+				<apex:repeat value="{!SymbolTable.variables}" var="variable">
+					<tr>
+						<td></td>
+						<td>
+							<apex:repeat value="{!variable.modifiers}" var="modifier">
+								{!modifier}<br />
+							</apex:repeat>
+						</td>
+						<td colspan="2">{!variable.type}</td>
+						<td colspan="2">{!variable.name}</td>
+						<td>line {!variable.location.line}, col {!variable.location.column}</td>
+						
+						<td>
+							<apex:repeat value="{!variable.references}" var="reference">
+								line {!reference.line}, col {!reference.column}<br />
+							</apex:repeat>
+						</td>
+					</tr>
+				</apex:repeat>
+
+
+
+				<tr class="active">
+					<td class="success" colspan="8">External References</td>
+				</tr>
+				<tr>
+					<th colspan="4">namespace</th>
+					<th colspan="3">name</th>
+					<th>references</th>
+				</tr>
+				<apex:repeat value="{!SymbolTable.externalReferences}" var="externalReference">
+					<tr>
+						<td colspan="4">{!externalReference.namespace}</td>
+						<td colspan="3">{!externalReference.name}</td>
+						<td>
+							<apex:repeat value="{!externalReference.references}" var="reference">
+								line {!reference.line}, col {!reference.column}<br />
+							</apex:repeat>
+						</td>  
+					</tr>
+					<tr>
+						<td class="success" colspan="8">Methods</td>
+					</tr>
+					<tr>
+						<th></th>
+						<th></th>
+						<th>argTypes</th>
+						<th>returnType</th>
+						<th>name</th>
+						<th colspan="2">parameters</th>
+						<th>references <span data-toggle="tooltip" data-placement="top" title="Locations where this method is referenced in the referencing class. When extending a virtual class, you'll see super() references to the constructors." class="glyphicon glyphicon-question-sign"></span></th>
+					</tr>
+					<apex:repeat value="{!externalReference.methods}" var="method">
+						<tr>
+							<td></td>
+							<td></td>
+							<td>
+								<apex:repeat value="{!method.argTypes}" var="argtype">
+									{!argtype}<br />
+								</apex:repeat>
+							</td>
+							<td>{!method.returnType}</td>
+							<td>{!method.name}</td>
+							<td colspan="2">
+								<apex:repeat value="{!method.parameters}" var="parameter">
+									{!parameter.type} <em>{!parameter.name}</em><br />
+								</apex:repeat>
+							</td>
+							<td>
+								<apex:repeat value="{!method.references}" var="reference">
+									line {!reference.line}, col {!reference.column}<br />
+								</apex:repeat>
+							</td>
+						</tr>
+					</apex:repeat>
+
+					<tr>
+						<td class="success" colspan="8">Variables</td>
+					</tr>
+					<tr>
+						<th></th>
+						<th></th>
+						<th></th>
+						<th></th>
+						<th colspan="3">name</th>
+						<th>references</th>
+					</tr>
+					<apex:repeat value="{!externalReference.variables}" var="variable">
+						<tr>
+							<td></td>
+							<td></td>
+							<td></td>
+							<td></td>
+							<td colspan="3">{!variable.name}</td>
+							<td>
+								<apex:repeat value="{!variable.references}" var="reference">
+									line {!reference.line}, col {!reference.column}<br />
+								</apex:repeat>
+							</td>
+						</tr>
+					</apex:repeat>
+				</apex:repeat>
+
+
+
+				<tr>
+					<td class="active" colspan="8">Inner Classes</td>
+				</tr>
+				<tr>
+					<td colspan="8">
+						<div class="panel-group" id="accordion_{!SymbolTable.Id}_innerclasses">
+							<apex:repeat value="{!SymbolTable.innerClasses}" var="innerClass">
+								<div class="panel panel-primary">
+									<c:InnerClassRenderComponent accordionPanelName="accordion_{!SymbolTable.Id}_innerclasses" SymbolTable="{!innerClass}" />
+								</div>
+							</apex:repeat>
+						</div>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</div>
+
+</apex:component>

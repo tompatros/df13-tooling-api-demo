@@ -1,0 +1,6 @@
+<apex:component layout="none">
+	<apex:attribute name="SymbolTable" type="SymbolTable" description="" />
+
+	
+	
+</apex:component>

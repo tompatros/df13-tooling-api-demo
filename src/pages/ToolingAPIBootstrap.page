@@ -1,0 +1,185 @@
+<apex:page standardStylesheets="false" showHeader="false" sidebar="false" controller="ToolingAPIBase">
+	
+	<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+
+	<script>
+
+	    j$ = jQuery.noConflict();
+	    $describeGlobalData = null;
+	    $objects = [];
+	    $toolingAPIClassBody = '';
+  
+	    $reservedClassNameWords = 'Name';
+	    $reservedPropertyNameWords = 'System';
+
+	    j$(document).ready(function() {
+	        
+	        j$('#describeGlobalButton').on('click', function(e) {
+	            describeGlobal();
+	        });
+
+	    });
+
+	    function cleanReservedClassName($word) {
+	    	if($reservedClassNameWords.indexOf($word) >= 0) return 'x_' + $word;
+	    	return $word;
+	    }
+
+	    function cleanReservedPropertyName($word) {
+	    	if($reservedPropertyNameWords.indexOf($word) >= 0) return 'x_' + $word;
+	    	return $word;
+	    }
+
+	    function describeGlobal() {
+	        Visualforce.remoting.Manager.invokeAction(
+	            '{!$RemoteAction.ToolingAPIBase.describeGlobal}', 
+	            function(result, event) {
+	                if(event.status) {
+	                	result = result.replace(/quot/g, '');
+	                	result = result.replace(/&;/g, '"');
+	                	$describeGlobalData = JSON.parse(result);
+	                	for($x = 0; $x < $describeGlobalData.sobjects.length; $x++) {
+	                		$sobject = $describeGlobalData.sobjects[$x];
+	                		$objects.push($sobject.name);
+	                	}
+	                	$objects = ['ApexTrigger', 'MetadataContainer', 'ApexTriggerMember', 'ContainerAsyncRequest'];
+	                	//$objects = ['MetadataContainer'];
+	                    describeSObjects();
+	                }
+	                else {
+	                    alert('An unexpected error occurred. Please try again.');
+	                }
+	            }, 
+	            { escape: true }
+	        );
+	    }
+
+	    function describeSObjects() {
+
+	    	if($objects.length > 0) {
+	    		$sObjectName = $objects[0];
+	    		$objects.shift();
+	    		j$('#data').html('Processing ' + $sObjectName);
+	    		describeSObject($sObjectName);
+	    	}
+	    	else {
+	    		// all data structures have been created, now finish the job
+	    		$toolingAPIClassBody = 'public class ToolingAPI2 extends ToolingAPIBase {\n' + $toolingAPIClassBody + '}';
+	    		j$('#data').html('<pre>' + $toolingAPIClassBody + '</pre>');
+	    		createApexClass({
+	    			Name : 'ToolingAPI',
+	    			Body : $toolingAPIClassBody
+	    		});
+	    	}
+	    }
+
+	    function describeSObject($sObjectName) {
+	        Visualforce.remoting.Manager.invokeAction(
+	            '{!$RemoteAction.ToolingAPIBase.describeSObject}',
+	            $sObjectName, 
+	            function(result, event) {
+	                if(event.status) {
+	                	result = result.replace(/quot/g, '');
+	                	result = result.replace(/&;/g, '"');
+	                	$sObjectData = JSON.parse(result);
+	                    addToolingAPIObject($sObjectData);
+	                }
+	                else {
+	                    alert('An unexpected error occurred. Please try again.');
+	                }
+	            }, 
+	            { escape: true }
+	        );
+	    }
+
+	    function addToolingAPIObject($sObjectData) {
+	    	
+	    	
+		    	$toolingAPIClassBody += '\tpublic class ' + cleanReservedClassName($sObjectData.name) + ' {\n';
+
+		    	for($x = 0; $x < $sObjectData.fields.length; $x++) {
+		    		
+		    		$field = $sObjectData.fields[$x];
+		    		if($field === undefined || $field === null) continue;
+		    		if($field.type == 'reference') {
+		    			// this only happens for "Member" classes
+		    			if($field.name == 'ContentEntityId') {
+		    				//$field.type = $sObjectData.name.replace('Member', '');
+		    				$field.type = 'Id';
+		    			}
+		    			else if($field.name == 'MetadataContainerId') {
+		    				//$field.type = 'MetadataContainer';
+		    				$field.type = 'Id';
+		    			}
+		    			else {
+			    			continue;
+			    		}
+		    		}
+		    		if($field.type == 'complexvalue') {
+		    			if($field.name == 'SymbolTable') {
+		    				$field.type = 'SymbolTable';
+		    			}
+
+		    			else {
+		    				continue;
+		    			}
+		    		}
+		    		if($field.type == 'base64') continue;
+		    		if($field.type == 'picklist') $field.type = 'string';
+		    		if($field.type == 'email') $field.type = 'string';
+		    		if($field.type == 'phone') $field.type = 'string';
+		    		if($field.type == 'textarea') $field.type = 'string';
+		    		if($field.type == 'int') $field.type = 'integer';
+		    		$toolingAPIClassBody += '\t\tpublic ' + $field.type + ' ' + cleanReservedPropertyName($field.name) + '\t{ get; set; }\n'; 
+		    		
+		    	}
+		    	$toolingAPIClassBody += '\t}\n\n';
+
+		    	// now make the QueryResult extensions
+		    	$toolingAPIClassBody += '\tpublic class ' + cleanReservedClassName($sObjectData.name) + 'QueryResult extends QueryResult {\n';
+		    	$toolingAPIClassBody += '\t\t public ' + cleanReservedClassName($sObjectData.name)  + '[] records { get; set; }\n';
+		    	$toolingAPIClassBody += '\t}\n\n';
+
+		    	// now make the query methods
+		    	$toolingAPIClassBody += '\tpublic static ' + cleanReservedClassName($sObjectData.name)  + 'QueryResult query' + cleanReservedClassName($sObjectData.name) + '(String soql) {\n';
+        		$toolingAPIClassBody += '\t\t return (' + cleanReservedClassName($sObjectData.name)  + 'QueryResult)JSON.deserialize(ToolingAPIBase.query(soql).getBody(), ' + cleanReservedClassName($sObjectData.name)  + 'QueryResult.class);\n';
+        		$toolingAPIClassBody += '\t}\n\n';
+
+
+        		// now make the create methods
+        		if(cleanReservedClassName($sObjectData.name) != 'ApexClass') {
+	        		$toolingAPIClassBody += '\t@remoteAction\n';
+	        		$toolingAPIClassBody += '\tpublic static SaveResult create' + cleanReservedClassName($sObjectData.name) + '(' + cleanReservedClassName($sObjectData.name) + ' data) {\n';
+	        		$toolingAPIClassBody += '\t\treturn (SaveResult)JSON.deserialize(ToolingAPIBase.send(\'sobjects/' + cleanReservedClassName($sObjectData.name) + '/\', \'POST\', JSON.serialize(data)).getBody(), SaveResult.class);\n';
+					//$toolingAPIClassBody += '\t\treturn ToolingAPIBase.send(\'sobjects/' + cleanReservedClassName($sObjectData.name) + '/\', \'POST\', data).getBody();\n';
+				    $toolingAPIClassBody += '\t}\n\n';
+				}
+
+	    	describeSObjects();
+
+	    }
+
+	    function createApexClass($class) {
+	        Visualforce.remoting.Manager.invokeAction(
+	            '{!$RemoteAction.ToolingAPIBase.createApexClass}',
+	            JSON.stringify($class), 
+	            function(result, event) {
+	                if(event.status) {
+	                	result = result.replace(/quot/g, '');
+	                	result = result.replace(/&;/g, '"');
+	                	$resultData = JSON.parse(result);
+	                }
+	                else {
+	                    alert('An unexpected error occurred. Please try again.');
+	                }
+	            }, 
+	            { escape: true }
+	        );
+	    } 
+
+	</script>
+
+	<button id="describeGlobalButton">describe global</button>
+	<div id="data"></div>
+
+</apex:page>
